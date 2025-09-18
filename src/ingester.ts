@@ -12,7 +12,7 @@ export function createIngester(db: Database, idResolver: IdResolver) {
       // Watch for write events
       if (evt.event === "create" || evt.event === "update") {
         const now = new Date();
-        const record = evt.record;
+        const record: Item.Record = evt.record;
 
         // If the write is a valid status update
         if (
@@ -29,7 +29,8 @@ export function createIngester(db: Database, idResolver: IdResolver) {
               title: record.title,
               description: record.description,
               photo: record.photo,
-              geomarker: record.geomarker,
+              ["geomarker.lng"]: record.geomarker.lng,
+              ["geomarker.lat"]: record.geomarker.lat,
               indexedAt: now.toISOString(),
             })
             .onConflict((oc) =>
@@ -37,7 +38,8 @@ export function createIngester(db: Database, idResolver: IdResolver) {
                 title: record.title,
                 description: record.description,
                 photo: record.photo,
-                geomarker: record.geomarker,
+                ["geomarker.lng"]: record.geomarker.lng,
+                ["geomarker.lat"]: record.geomarker.lat,
                 indexedAt: now.toISOString(),
               }),
             )
