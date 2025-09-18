@@ -12,15 +12,13 @@ const id = 'app.glean.item'
 
 export interface Record {
   $type: 'app.glean.item'
-  /** Unique identifier for the item */
-  id: string
-  /** Photo of the item */
-  photo: BlobRef
-  geomarker: Geomarker
   /** Optional title for the item */
   title?: string
   /** Optional description of the item */
   description?: string
+  /** Photo of the item */
+  photo: BlobRef
+  geomarker: Geomarker
   /** Time when the item was created */
   createdAt: string
   [k: string]: unknown

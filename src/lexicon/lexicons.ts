@@ -199,11 +199,17 @@ export const schemaDict = {
         key: 'tid',
         record: {
           type: 'object',
-          required: ['id', 'photo', 'geomarker', 'createdAt'],
+          required: ['photo', 'geomarker', 'createdAt'],
           properties: {
-            id: {
+            title: {
               type: 'string',
-              description: 'Unique identifier for the item',
+              maxLength: 300,
+              description: 'Optional title for the item',
+            },
+            description: {
+              type: 'string',
+              maxLength: 1000,
+              description: 'Optional description of the item',
             },
             photo: {
               type: 'blob',
@@ -215,16 +221,6 @@ export const schemaDict = {
               type: 'ref',
               ref: 'lex:app.glean.item#geomarker',
               description: 'Geographic location of the item',
-            },
-            title: {
-              type: 'string',
-              maxLength: 300,
-              description: 'Optional title for the item',
-            },
-            description: {
-              type: 'string',
-              maxLength: 1000,
-              description: 'Optional description of the item',
             },
             createdAt: {
               type: 'string',
