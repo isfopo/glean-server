@@ -15,18 +15,14 @@ export type DatabaseSchema = {
   auth_state: AuthState;
 };
 
-export type GeoMarker = {
-  lat: string;
-  lng: string;
-};
-
 export type Item = {
   uri: string;
   authorDid: string;
   title: string;
   description: string;
   photo: string;
-  geomarker: GeoMarker;
+  "geomarker.lng": string;
+  "geomarker.lat": string;
   createdAt: string;
   indexedAt: string;
 };
@@ -64,7 +60,8 @@ migrations["001"] = {
       .addColumn("title", "varchar", (col) => col.notNull())
       .addColumn("description", "varchar", (col) => col.notNull())
       .addColumn("photo", "varchar", (col) => col.notNull())
-      .addColumn("geomarker", "varchar", (col) => col.notNull())
+      .addColumn("geomarker.lng", "varchar", (col) => col.notNull())
+      .addColumn("geomarker.lat", "varchar", (col) => col.notNull())
       .addColumn("createdAt", "varchar", (col) => col.notNull())
       .addColumn("indexedAt", "varchar", (col) => col.notNull())
       .execute();
