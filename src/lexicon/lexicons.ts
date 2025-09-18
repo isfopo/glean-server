@@ -212,10 +212,8 @@ export const schemaDict = {
               description: 'Optional description of the item',
             },
             photo: {
-              type: 'blob',
-              accept: ['image/png', 'image/jpeg', 'image/webp'],
-              maxSize: 10000000,
-              description: 'Photo of the item',
+              type: 'string',
+              description: 'URI to the photo of the item',
             },
             geomarker: {
               type: 'ref',

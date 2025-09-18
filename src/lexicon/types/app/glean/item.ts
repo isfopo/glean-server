@@ -16,8 +16,8 @@ export interface Record {
   title?: string
   /** Optional description of the item */
   description?: string
-  /** Photo of the item */
-  photo: BlobRef
+  /** URI to the photo of the item */
+  photo: string
   geomarker: Geomarker
   /** Time when the item was created */
   createdAt: string
