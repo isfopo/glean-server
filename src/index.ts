@@ -41,8 +41,12 @@ export class Server {
   ) {}
 
   static async create() {
-    const { NODE_ENV, HOST, DB_PATH, CORS_ORIGIN } = process.env;
+    const NODE_ENV = process.env.NODE_ENV || "development";
+    const HOST = process.env.HOST || "localhost";
     const PORT = parseInt(process.env.PORT || "3000", 10);
+    const DB_PATH = process.env.DB_PATH || ":memory:";
+    const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+
     const logger = pino({ name: "server start" });
 
     // Set up the SQLite database
@@ -70,18 +74,12 @@ export class Server {
 
     // Routes
     const router = createRouter(ctx);
-    app.use(router);
-    app.use((_req, res) => res.sendStatus(404));
+    // app.use(router);
 
     // Middleware
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use(helmet());
-
-    // Bind our server to the port
-    const server = app.listen(PORT);
-    await events.once(server, "listening");
-    logger.info(`Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`);
 
     app.use(
       cors({
@@ -147,9 +145,14 @@ export class Server {
     );
 
     // 404 handler
-    app.use((req, res) => {
+    app.use((_, res) => {
       res.status(404).json({ error: "Not found" });
     });
+
+    // Bind our server to the port
+    const server = app.listen(PORT);
+    await events.once(server, "listening");
+    logger.info(`Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`);
 
     return new Server(app, server, ctx);
   }
