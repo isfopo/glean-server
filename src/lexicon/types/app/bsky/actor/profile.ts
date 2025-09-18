@@ -21,8 +21,7 @@ export interface Record {
   displayName?: string
   /** Free-form profile description text. */
   description?: string
-  /** Small image to be displayed next to posts from account. AKA, 'profile picture' */
-  avatar?: BlobRef
+  avatar?: string
   /** Larger horizontal image to display behind profile view. */
   banner?: BlobRef
   labels?: $Typed<ComAtprotoLabelDefs.SelfLabels> | { $type: string }

@@ -268,11 +268,7 @@ export const schemaDict = {
               maxLength: 2560,
             },
             avatar: {
-              type: "blob",
-              description:
-                "Small image to be displayed next to posts from account. AKA, 'profile picture'",
-              accept: ["image/png", "image/jpeg"],
-              maxSize: 1000000,
+              type: "string",
             },
             banner: {
               type: "blob",

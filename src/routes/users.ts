@@ -1,6 +1,13 @@
-import { Router, Response } from 'express';
-import multer from 'multer';
-import { AuthenticatedRequest, authenticateToken, optionalAuth } from '../middleware/auth';
+import { Router, Response } from "express";
+import multer from "multer";
+import {
+  AuthenticatedRequest,
+  authenticateToken,
+  optionalAuth,
+} from "../middleware/auth";
+import { uploadStream, getPublicUrl } from "../lib/s3";
+import { Readable } from "stream";
+import { v4 as uuidv4 } from "uuid";
 
 const router = Router();
 
@@ -11,48 +18,48 @@ const upload = multer({
     fileSize: 1 * 1024 * 1024, // 1MB limit for profile images
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed.'));
+      cb(new Error("Invalid file type. Only JPEG, PNG, and WebP are allowed."));
     }
-  }
+  },
 });
 
 // Get all users (public endpoint)
-router.get('/', optionalAuth, (req: any, res: any) => {
+router.get("/", optionalAuth, (req: any, res: any) => {
   try {
     const users = req.repository.getAllUsers();
     // Remove sensitive information
-    const publicUsers = users.map(user => ({
+    const publicUsers = users.map((user) => ({
       did: user.did,
       handle: user.handle,
       profile: user.profile,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
     }));
-    
+
     res.json(publicUsers);
   } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ error: 'Failed to get users' });
+    console.error("Get users error:", error);
+    res.status(500).json({ error: "Failed to get users" });
   }
 });
 
 // Get user profile by handle or DID
-router.get('/:identifier', optionalAuth, (req: any, res: any) => {
+router.get("/:identifier", optionalAuth, (req: any, res: any) => {
   try {
     const { identifier } = req.params;
-    
+
     let user;
-    if (identifier.startsWith('did:')) {
+    if (identifier.startsWith("did:")) {
       user = req.repository.getUser(identifier);
     } else {
       user = req.repository.getUserByHandle(identifier);
     }
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Return public profile information
@@ -60,68 +67,87 @@ router.get('/:identifier', optionalAuth, (req: any, res: any) => {
       did: user.did,
       handle: user.handle,
       profile: user.profile,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
     });
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to get user' });
+    console.error("Get user error:", error);
+    res.status(500).json({ error: "Failed to get user" });
   }
 });
 
 // Update user profile
-router.put('/profile', authenticateToken, upload.fields([
-  { name: 'avatar', maxCount: 1 },
-  { name: 'banner', maxCount: 1 }
-]), (req: any, res: any) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Not authenticated' });
+router.put(
+  "/profile",
+  authenticateToken,
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "banner", maxCount: 1 },
+  ]),
+  async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { displayName, description } = req.body;
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+      const profileUpdate: any = {};
+
+      if (displayName !== undefined) {
+        profileUpdate.displayName = displayName;
+      }
+
+      if (description !== undefined) {
+        profileUpdate.description = description;
+      }
+
+      const bucket = process.env.S3_BUCKET;
+      if (!bucket) {
+        throw new Error("S3_BUCKET environment variable not set");
+      }
+
+      if (files?.avatar?.[0]) {
+        const key = uuidv4();
+        const stream = Readable.from(files.avatar[0].buffer);
+        await uploadStream(bucket, key, stream, files.avatar[0].mimetype);
+        profileUpdate.avatar = getPublicUrl(bucket, key);
+      }
+
+      if (files?.banner?.[0]) {
+        const key = uuidv4();
+        const stream = Readable.from(files.banner[0].buffer);
+        await uploadStream(bucket, key, stream, files.banner[0].mimetype);
+        profileUpdate.banner = getPublicUrl(bucket, key);
+      }
+
+      const updatedUser = req.repository.updateUserProfile(
+        req.user.did,
+        profileUpdate,
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        did: updatedUser.did,
+        handle: updatedUser.handle,
+        profile: updatedUser.profile,
+        createdAt: updatedUser.createdAt,
+      });
+    } catch (error) {
+      console.error("Update profile error:", error);
+      res.status(500).json({ error: "Failed to update profile" });
     }
-
-    const { displayName, description } = req.body;
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-    const profileUpdate: any = {};
-
-    if (displayName !== undefined) {
-      profileUpdate.displayName = displayName;
-    }
-
-    if (description !== undefined) {
-      profileUpdate.description = description;
-    }
-
-    if (files?.avatar?.[0]) {
-      profileUpdate.avatar = files.avatar[0].buffer.toString('base64');
-    }
-
-    if (files?.banner?.[0]) {
-      profileUpdate.banner = files.banner[0].buffer.toString('base64');
-    }
-
-    const updatedUser = req.repository.updateUserProfile(req.user.did, profileUpdate);
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({
-      did: updatedUser.did,
-      handle: updatedUser.handle,
-      profile: updatedUser.profile,
-      createdAt: updatedUser.createdAt
-    });
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ error: 'Failed to update profile' });
-  }
-});
+  },
+);
 
 // Delete user account
-router.delete('/account', authenticateToken, (req: any, res: any) => {
+router.delete("/account", authenticateToken, (req: any, res: any) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ error: "Not authenticated" });
     }
 
     // In a real implementation, you'd want to:
@@ -131,22 +157,22 @@ router.delete('/account', authenticateToken, (req: any, res: any) => {
     // 4. Potentially add a grace period for recovery
 
     const deleted = req.repository.deleteUser(req.user.did);
-    
+
     if (deleted) {
       // Also delete the current session
-      const authHeader = req.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
+      const authHeader = req.headers["authorization"];
+      const token = authHeader && authHeader.split(" ")[1];
       if (token) {
         req.repository.deleteSession(token);
       }
-      
+
       res.json({ success: true });
     } else {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
-    console.error('Delete account error:', error);
-    res.status(500).json({ error: 'Failed to delete account' });
+    console.error("Delete account error:", error);
+    res.status(500).json({ error: "Failed to delete account" });
   }
 });
 
