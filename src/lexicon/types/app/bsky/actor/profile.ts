@@ -9,19 +9,25 @@ import {
   is$typed as _is$typed,
   type OmitKey,
 } from '../../../../util'
+import type * as ComAtprotoLabelDefs from '../../../com/atproto/label/defs.js'
+import type * as ComAtprotoRepoStrongRef from '../../../com/atproto/repo/strongRef.js'
 
 const is$typed = _is$typed,
   validate = _validate
-const id = 'app.gleam.actor.profile'
+const id = 'app.bsky.actor.profile'
 
 export interface Record {
-  $type: 'app.gleam.actor.profile'
-  /** User's display name */
+  $type: 'app.bsky.actor.profile'
   displayName?: string
-  /** User's avatar image */
+  /** Free-form profile description text. */
+  description?: string
+  /** Small image to be displayed next to posts from account. AKA, 'profile picture' */
   avatar?: BlobRef
-  /** User's current point count */
-  points?: number
+  /** Larger horizontal image to display behind profile view. */
+  banner?: BlobRef
+  labels?: $Typed<ComAtprotoLabelDefs.SelfLabels> | { $type: string }
+  joinedViaStarterPack?: ComAtprotoRepoStrongRef.Main
+  createdAt?: string
   [k: string]: unknown
 }
 

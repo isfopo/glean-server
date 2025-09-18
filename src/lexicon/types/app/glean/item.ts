@@ -8,10 +8,10 @@ import { type $Typed, is$typed as _is$typed, type OmitKey } from '../../../util'
 
 const is$typed = _is$typed,
   validate = _validate
-const id = 'app.gleam.item'
+const id = 'app.glean.item'
 
 export interface Record {
-  $type: 'app.gleam.item'
+  $type: 'app.glean.item'
   /** Unique identifier for the item */
   id: string
   /** Photo of the item */
@@ -38,7 +38,7 @@ export function validateRecord<V>(v: V) {
 
 /** Geographic coordinates */
 export interface Geomarker {
-  $type?: 'app.gleam.item#geomarker'
+  $type?: 'app.glean.item#geomarker'
   /** Latitude coordinate */
   lat: string
   /** Longitude coordinate */
