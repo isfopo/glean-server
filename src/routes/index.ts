@@ -7,7 +7,7 @@ import { TID } from "@atproto/common";
 import { Agent } from "@atproto/api";
 import express from "express";
 import { getIronSession } from "iron-session";
-import type { AppContext } from "#/index";
+import type { AppContext } from "../index";
 import * as Item from "#/lexicon/types/app/glean/item";
 import * as Profile from "#/lexicon/types/app/bsky/actor/profile";
 

@@ -1,8 +1,8 @@
 import pino from "pino";
 import { IdResolver } from "@atproto/identity";
 import { Firehose } from "@atproto/sync";
-import type { Database } from "#/db";
-import * as Item from "#/lexicon/types/app/glean/item";
+import type { Database } from "./db";
+import * as Item from "./lexicon/types/app/glean/item";
 
 export function createIngester(db: Database, idResolver: IdResolver) {
   const logger = pino({ name: "firehose ingestion" });

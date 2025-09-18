@@ -1,17 +1,17 @@
-import { LexiconDoc } from '@atproto/lexicon';
-import { TID } from '@atproto/common-web';
-import { v4 as uuidv4 } from 'uuid';
-import * as fs from 'fs';
-import * as path from 'path';
-import { Item, User, GeoMarker, UserProfile } from '../types';
+import { LexiconDoc } from "@atproto/lexicon";
+import { TID } from "@atproto/common-web";
+import { v4 as uuidv4 } from "uuid";
+import * as fs from "fs";
+import * as path from "path";
+import { Item, User, GeoMarker, UserProfile } from "../types";
 
 // Load lexicons
 const itemLexicon: LexiconDoc = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '../lexicons/item.json'), 'utf8')
+  fs.readFileSync(path.join(__dirname, "../../lexicons/item.json"), "utf8"),
 );
 
 const profileLexicon: LexiconDoc = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '../lexicons/profile.json'), 'utf8')
+  fs.readFileSync(path.join(__dirname, "../../lexicons/profile.json"), "utf8"),
 );
 
 export class Repository {
@@ -22,8 +22,8 @@ export class Repository {
 
   constructor() {
     // Initialize lexicons
-    this.lexicons.set('app.gleam.item', itemLexicon);
-    this.lexicons.set('app.gleam.actor.profile', profileLexicon);
+    this.lexicons.set("app.gleam.item", itemLexicon);
+    this.lexicons.set("app.gleam.actor.profile", profileLexicon);
   }
 
   // Lexicon methods
@@ -41,10 +41,13 @@ export class Repository {
   }): Item {
     const id = uuidv4();
     const tid = TID.nextStr();
-    
+
     const item: Item = {
       id,
-      photo: typeof data.photo === 'string' ? data.photo : data.photo.toString('base64'),
+      photo:
+        typeof data.photo === "string"
+          ? data.photo
+          : data.photo.toString("base64"),
       geomarker: data.geomarker,
       title: data.title,
       description: data.description,
@@ -60,13 +63,14 @@ export class Repository {
   }
 
   getAllItems(): Item[] {
-    return Array.from(this.items.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return Array.from(this.items.values()).sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
 
   getItemsByLocation(center: GeoMarker, radiusKm: number = 10): Item[] {
-    return this.getAllItems().filter(item => {
+    return this.getAllItems().filter((item) => {
       const distance = this.calculateDistance(center, item.geomarker);
       return distance <= radiusKm;
     });
@@ -83,8 +87,8 @@ export class Repository {
     email?: string;
     profile?: Partial<UserProfile>;
   }): User {
-    const did = `did:plc:${uuidv4().replace(/-/g, '')}`;
-    
+    const did = `did:plc:${uuidv4().replace(/-/g, "")}`;
+
     const user: User = {
       did,
       handle: data.handle,
@@ -101,14 +105,19 @@ export class Repository {
   }
 
   getUserByHandle(handle: string): User | undefined {
-    return Array.from(this.users.values()).find(user => user.handle === handle);
+    return Array.from(this.users.values()).find(
+      (user) => user.handle === handle,
+    );
   }
 
   getAllUsers(): User[] {
     return Array.from(this.users.values());
   }
 
-  updateUserProfile(did: string, profile: Partial<UserProfile>): User | undefined {
+  updateUserProfile(
+    did: string,
+    profile: Partial<UserProfile>,
+  ): User | undefined {
     const user = this.users.get(did);
     if (!user) return undefined;
 
@@ -142,7 +151,7 @@ export class Repository {
 
     const now = new Date();
     const expiresAt = new Date(session.expiresAt);
-    
+
     if (now > expiresAt) {
       this.sessions.delete(accessJwt);
       return null;
@@ -160,11 +169,14 @@ export class Repository {
     const R = 6371; // Earth's radius in km
     const dLat = this.toRadians(pos2.lat - pos1.lat);
     const dLon = this.toRadians(pos2.lng - pos1.lng);
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(pos1.lat)) * Math.cos(this.toRadians(pos2.lat)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(pos1.lat)) *
+        Math.cos(this.toRadians(pos2.lat)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }

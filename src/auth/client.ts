@@ -1,10 +1,10 @@
 import { NodeOAuthClient } from "@atproto/oauth-client-node";
-import type { Database } from "#/db";
+import type { Database } from "../db";
 import { SessionStore, StateStore } from "./storage";
 
-export const createClient = async (db: Database) => {
+export const createClient = async (db: Database, port: number) => {
   const publicUrl = process.env.PUBLIC_URL;
-  const url = publicUrl || `http://127.0.0.1:${process.env.PORT}`;
+  const url = publicUrl || `http://127.0.0.1:${port}`;
   const enc = encodeURIComponent;
   return new NodeOAuthClient({
     clientMetadata: {

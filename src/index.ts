@@ -9,7 +9,7 @@ import { itemRoutes } from "./routes/items";
 import { userRoutes } from "./routes/users";
 import { authRoutes } from "./routes/auth";
 import { Repository } from "./lib/repository";
-import { createDb, Database, migrateToLatest } from "#/db";
+import { createDb, Database, migrateToLatest } from "./db";
 import { Firehose } from "@atproto/sync";
 import {
   BidirectionalResolver,
@@ -42,7 +42,7 @@ export class Server {
 
   static async create() {
     const { NODE_ENV, HOST, DB_PATH, CORS_ORIGIN } = process.env;
-    const PORT = process.env.PORT || 3000;
+    const PORT = parseInt(process.env.PORT || "3000", 10);
     const logger = pino({ name: "server start" });
 
     // Set up the SQLite database
@@ -50,7 +50,7 @@ export class Server {
     await migrateToLatest(db);
 
     // Create the atproto utilities
-    const oauthClient = await createClient(db);
+    const oauthClient = await createClient(db, PORT);
     const baseIdResolver = createIdResolver();
     const ingester = createIngester(db, baseIdResolver);
     const resolver = createBidirectionalResolver(baseIdResolver);
@@ -149,13 +149,6 @@ export class Server {
     // 404 handler
     app.use((req, res) => {
       res.status(404).json({ error: "Not found" });
-    });
-
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 ATproto server running on port ${PORT}`);
-      console.log(`📡 Health check: http://localhost:${PORT}/health`);
-      console.log(`📚 Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
     return new Server(app, server, ctx);
