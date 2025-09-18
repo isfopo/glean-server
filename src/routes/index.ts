@@ -1,15 +1,11 @@
-import assert from "node:assert";
-import path from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { OAuthResolverError } from "@atproto/oauth-client-node";
-import { isValidHandle } from "@atproto/syntax";
-import { TID } from "@atproto/common";
 import { Agent } from "@atproto/api";
 import express from "express";
 import { getIronSession } from "iron-session";
 import type { AppContext } from "../index";
-import * as Item from "#/lexicon/types/app/glean/item";
-import * as Profile from "#/lexicon/types/app/bsky/actor/profile";
+import { authRoutes } from "./auth";
+import { itemRoutes } from "./items";
+import { userRoutes } from "./users";
 
 type Session = { did: string };
 
@@ -51,6 +47,47 @@ async function getSessionAgent(
 
 export const createRouter = (ctx: AppContext) => {
   const router = express.Router();
+
+  // Health check endpoint
+  router.get("/health", (_, res) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+    });
+  });
+
+  // OAuth metadata
+  router.get(
+    "/client-metadata.json",
+    handler((_req, res) => {
+      return res.json(ctx.oauthClient.clientMetadata);
+    }),
+  );
+
+  // Routes
+  router.use("/api/items", itemRoutes);
+  router.use("/api/users", userRoutes);
+  router.use("/api/auth", authRoutes);
+
+  // Lexicon endpoint to serve our schemas
+  router.get("/api/lexicons/:id", (req, res) => {
+    const { id } = req.params;
+    try {
+      const lexicon = (req as any).repository.getLexicon(id);
+      if (!lexicon) {
+        return res.status(404).json({ error: "Lexicon not found" });
+      }
+      res.json(lexicon);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load lexicon" });
+    }
+  });
+
+  // 404 handler
+  router.use((_, res) => {
+    res.status(404).json({ error: "Not found" });
+  });
 
   return router;
 };

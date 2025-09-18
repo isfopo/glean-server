@@ -5,9 +5,6 @@ import dotenv from "dotenv";
 import pino from "pino";
 import events from "node:events";
 import type http from "node:http";
-import { itemRoutes } from "./routes/items";
-import { userRoutes } from "./routes/users";
-import { authRoutes } from "./routes/auth";
 import { Repository } from "./lib/repository";
 import { createDb, Database, migrateToLatest } from "./db";
 import { Firehose } from "@atproto/sync";
@@ -28,6 +25,7 @@ export type AppContext = {
   logger: pino.Logger;
   oauthClient: OAuthClient;
   resolver: BidirectionalResolver;
+  repository: Repository;
 };
 
 // Load environment variables
@@ -53,17 +51,21 @@ export class Server {
     const db = createDb(DB_PATH);
     await migrateToLatest(db);
 
+    // Initialize repository
+    const repository = new Repository();
+
     // Create the atproto utilities
     const oauthClient = await createClient(db, PORT);
     const baseIdResolver = createIdResolver();
     const ingester = createIngester(db, baseIdResolver);
     const resolver = createBidirectionalResolver(baseIdResolver);
-    const ctx = {
+    const ctx: AppContext = {
       db,
       ingester,
       logger,
       oauthClient,
       resolver,
+      repository,
     };
 
     // Subscribe to events on the firehose
@@ -72,26 +74,16 @@ export class Server {
     const app = express();
     app.set("trust proxy", true);
 
-    // Routes
-    const router = createRouter(ctx);
-    // app.use(router);
-
     // Middleware
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
+    app.use(express.json({ limit: "50mb" }));
+    app.use(express.urlencoded({ extended: true, limit: "50mb" }));
     app.use(helmet());
-
     app.use(
       cors({
-        origin: CORS_ORIGIN || "http://localhost:3000",
+        origin: CORS_ORIGIN,
         credentials: true,
       }),
     );
-    app.use(express.json({ limit: "50mb" }));
-    app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-    // Initialize repository
-    const repository = new Repository();
 
     // Make repository available in request context
     app.use((req, res, next) => {
@@ -100,32 +92,8 @@ export class Server {
     });
 
     // Routes
-    app.use("/api/items", itemRoutes);
-    app.use("/api/users", userRoutes);
-    app.use("/api/auth", authRoutes);
-
-    // Health check endpoint
-    app.get("/health", (req, res) => {
-      res.json({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        version: "1.0.0",
-      });
-    });
-
-    // Lexicon endpoint to serve our schemas
-    app.get("/api/lexicons/:id", (req, res) => {
-      const { id } = req.params;
-      try {
-        const lexicon = repository.getLexicon(id);
-        if (!lexicon) {
-          return res.status(404).json({ error: "Lexicon not found" });
-        }
-        res.json(lexicon);
-      } catch (error) {
-        res.status(500).json({ error: "Failed to load lexicon" });
-      }
-    });
+    const router = createRouter(ctx);
+    app.use(router);
 
     // Error handling middleware
     app.use(
@@ -133,6 +101,7 @@ export class Server {
         err: Error,
         req: express.Request,
         res: express.Response,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         next: express.NextFunction,
       ) => {
         console.error("Error:", err);
@@ -143,11 +112,6 @@ export class Server {
         });
       },
     );
-
-    // 404 handler
-    app.use((_, res) => {
-      res.status(404).json({ error: "Not found" });
-    });
 
     // Bind our server to the port
     const server = app.listen(PORT);
