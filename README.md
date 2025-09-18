@@ -1,4 +1,4 @@
-# Gleam ATproto Server
+# Glean ATproto Server
 
 A TypeScript-based ATproto server built with Node.js and Express for managing items with photos and geolocations, along with user profiles.
 
@@ -6,7 +6,7 @@ A TypeScript-based ATproto server built with Node.js and Express for managing it
 
 - **ATproto-compliant lexicons** for items and user profiles
 - **Item management** with photo uploads and geolocation
-- **User authentication** and profile management  
+- **User authentication** and profile management
 - **Location-based queries** for finding nearby items
 - **File upload support** for photos and profile images
 - **Session management** with JWT-like tokens
@@ -18,7 +18,7 @@ A TypeScript-based ATproto server built with Node.js and Express for managing it
 ```
 src/
 ├── lexicons/           # ATproto lexicon definitions
-│   ├── item.json      # Item record schema  
+│   ├── item.json      # Item record schema
 │   └── profile.json   # User profile schema
 ├── lib/               # Core libraries
 │   └── repository.ts  # Data management and ATproto operations
@@ -190,7 +190,7 @@ Authorization: Bearer <access_token>
         "required": ["id", "photo", "geomarker", "createdAt"],
         "properties": {
           "id": { "type": "string" },
-          "photo": { 
+          "photo": {
             "type": "blob",
             "accept": ["image/png", "image/jpeg", "image/webp"],
             "maxSize": 10000000
@@ -220,7 +220,7 @@ Authorization: Bearer <access_token>
 ```json
 {
   "lexicon": 1,
-  "id": "app.gleam.actor.profile", 
+  "id": "app.gleam.actor.profile",
   "defs": {
     "main": {
       "type": "record",
@@ -229,7 +229,7 @@ Authorization: Bearer <access_token>
         "type": "object",
         "properties": {
           "displayName": { "type": "string", "maxLength": 64 },
-          "avatar": { 
+          "avatar": {
             "type": "blob",
             "accept": ["image/png", "image/jpeg", "image/webp"],
             "maxSize": 1000000
@@ -310,7 +310,7 @@ For production deployment, consider:
 
 1. **Database integration** (PostgreSQL, MongoDB, etc.)
 2. **Proper password hashing** (bcrypt, argon2)
-3. **Image storage service** (AWS S3, Cloudinary, etc.)  
+3. **Image storage service** (AWS S3, Cloudinary, etc.)
 4. **Real JWT implementation** with proper signing
 5. **Rate limiting** and DDoS protection
 6. **Input validation** and sanitization
@@ -324,7 +324,7 @@ For production deployment, consider:
 The modular structure makes it easy to extend:
 
 - Add new lexicons in `src/lexicons/`
-- Create new routes in `src/routes/`  
+- Create new routes in `src/routes/`
 - Add middleware in `src/middleware/`
 - Define new types in `src/types/`
 
@@ -340,7 +340,7 @@ Response:
 ```json
 {
   "status": "ok",
-  "timestamp": "2025-01-18T01:46:16.000Z", 
+  "timestamp": "2025-01-18T01:46:16.000Z",
   "version": "1.0.0"
 }
 ```
