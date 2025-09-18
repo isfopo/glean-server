@@ -21,7 +21,7 @@
             "description": "User's avatar image"
           },
           "points": {
-            "type": "number",
+            "type": "integer",
             "description": "User's current point count"
           }
         }

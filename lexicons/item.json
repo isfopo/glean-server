@@ -49,21 +49,12 @@
       "required": ["lat", "lng"],
       "properties": {
         "lat": {
-          "type": "number",
-          "minimum": -90,
-          "maximum": 90,
+          "type": "string",
           "description": "Latitude coordinate"
         },
         "lng": {
-          "type": "number",
-          "minimum": -180,
-          "maximum": 180,
+          "type": "string",
           "description": "Longitude coordinate"
-        },
-        "accuracy": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Accuracy of the coordinates in meters"
         }
       }
     }
