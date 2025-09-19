@@ -17,6 +17,8 @@ import { OAuthClient } from "@atproto/oauth-client-node";
 import { createClient } from "./auth/client";
 import { createIngester } from "./ingester";
 import { createRouter } from "./routes";
+import * as OpenApiValidator from "express-openapi-validator";
+import path from "path";
 
 // Application state passed to the router and elsewhere
 export type AppContext = {
@@ -90,6 +92,17 @@ export class Server {
       (req as any).repository = repository;
       next();
     });
+
+    const spec = path.join(__dirname, "openapi.yaml");
+    app.use("/spec", express.static(spec));
+
+    app.use(
+      OpenApiValidator.middleware({
+        apiSpec: path.join(__dirname, "openapi.yaml"),
+        validateRequests: true,
+        validateResponses: true,
+      }),
+    );
 
     // Routes
     const router = createRouter(ctx);

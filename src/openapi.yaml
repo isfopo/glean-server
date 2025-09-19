@@ -1,0 +1,267 @@
+openapi: 3.1.0
+info:
+  title: Glean Server API
+  version: 1.0.0
+  description: API for the Glean server, an Express-based server for a social media application.
+servers:
+  - url: /api
+paths:
+  /auth/createAccount:
+    post:
+      summary: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                handle:
+                  type: string
+                password:
+                  type: string
+                email:
+                  type: string
+                profile:
+                  type: object
+      responses:
+        "201":
+          description: Account created successfully
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
+  /auth/createSession:
+    post:
+      summary: Log in to an existing account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                identifier:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Logged in successfully
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+  /auth/getSession:
+    get:
+      summary: Get information about the current session
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Session information retrieved successfully
+        "401":
+          description: Unauthorized
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+  /auth/deleteSession:
+    post:
+      summary: Log out of the current session
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+        "500":
+          description: Internal server error
+  /items:
+    get:
+      summary: Get all items
+      responses:
+        "200":
+          description: A list of items
+        "500":
+          description: Internal server error
+    post:
+      summary: Create a new item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                geomarker:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Item created successfully
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+  /items/location:
+    get:
+      summary: Get items by location
+      parameters:
+        - in: query
+          name: lat
+          schema:
+            type: number
+          required: true
+        - in: query
+          name: lng
+          schema:
+            type: number
+          required: true
+        - in: query
+          name: radius
+          schema:
+            type: number
+      responses:
+        "200":
+          description: A list of items
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
+  /items/{id}:
+    get:
+      summary: Get a specific item by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: The requested item
+        "404":
+          description: Item not found
+        "500":
+          description: Internal server error
+    delete:
+      summary: Delete a specific item by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Item deleted successfully
+        "401":
+          description: Unauthorized
+        "404":
+          description: Item not found
+        "500":
+          description: Internal server error
+  /users:
+    get:
+      summary: Get all users
+      responses:
+        "200":
+          description: A list of users
+        "500":
+          description: Internal server error
+  /users/{identifier}:
+    get:
+      summary: Get a user profile by handle or DID
+      parameters:
+        - in: path
+          name: identifier
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: The requested user profile
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+  /users/profile:
+    put:
+      summary: Update the current user's profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                banner:
+                  type: string
+                  format: binary
+                displayName:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Profile updated successfully
+        "401":
+          description: Unauthorized
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+  /users/account:
+    delete:
+      summary: Delete the current user's account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Account deleted successfully
+        "401":
+          description: Unauthorized
+        "404":
+          description: User not found
+        "500":
+          description: Internal server error
+  /lexicons/{id}:
+    get:
+      summary: Get a lexicon by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: The requested lexicon
+        "404":
+          description: Lexicon not found
+        "500":
+          description: Internal server error
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
