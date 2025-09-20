@@ -23,14 +23,18 @@ jobs:
       - name: Generate Types
         run: npm run generate:types
 
-      - name: Push to another repo
-        uses: cpina/github-action-push-to-another-repo@main
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-        with:
-          source-directory: "src/types"
-          destination-github-username: "isfopo"
-          destination-repository-name: "glean-client"
-          user-email: "isaacpoolemusic@gmail.com"
-          target-branch: "main"
-          target-directory: "src"
+      - name: Push to destination repository
+        run: |
+          git config --global user.name "isfopo"
+          git config --global user.email "isaacpoolemusic@gmail.com"
+          git clone "https://isfopo:${{ secrets.API_TOKEN_GITHUB }}@github.com/isfopo/glean-client.git"
+          mkdir -p glean-client/src
+          cp src/types/generated-types.ts glean-client/src/
+          cd glean-client
+          if [[ -n $(git status -s) ]]; then
+            git add .
+            git commit -m "feat: update generated types"
+            git push
+          else
+            echo "No changes to commit"
+          fi
