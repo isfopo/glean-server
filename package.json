@@ -7,7 +7,8 @@
     "build": "tsc",
     "dev": "nodemon --exec ts-node src/index.ts",
     "start": "node dist/index.js",
-    "test": "node test-server.js"
+    "test": "node test-server.js",
+    "generate:types": "openapi-typescript src/openapi.yaml -o src/types/generated-types.ts"
   },
   "keywords": [],
   "author": "Isaac Pooole",
@@ -45,6 +46,7 @@
     "@types/node": "^24.5.2",
     "@types/uuid": "^10.0.0",
     "nodemon": "^3.1.10",
+    "openapi-typescript": "^7.9.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }
