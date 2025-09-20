@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Install Dependencies
         run: npm install
@@ -25,16 +25,15 @@ jobs:
 
       - name: Push to destination repository
         run: |
-          git config --global user.name "isfopo"
           git config --global user.email "isaacpoolemusic@gmail.com"
-          git clone "https://isfopo:${{ secrets.API_TOKEN_GITHUB }}@github.com/isfopo/glean-client.git"
-          mkdir -p glean-client/src
-          cp src/types/generated-types.ts glean-client/src/
+          git config --global user.name "isfopo"
+          git clone https://${{ env.ORG_NAME }}:${{ secrets.PAT }}@github.com/${{ env.ORG_NAME }}/glean-client.git
           cd glean-client
-          if [[ -n $(git status -s) ]]; then
-            git add .
-            git commit -m "feat: update generated types"
-            git push
-          else
-            echo "No changes to commit"
-          fi
+          git remote add ${{ env.ORIGINAL_REPO_NAME }} https://${{ env.ORG_NAME }}:${{ secrets.PAT }}@github.com/${{ env.ORG_NAME }}/${{ env.ORIGINAL_REPO_NAME }}.git
+          git remote update
+          git merge ${{ env.ORIGINAL_REPO_NAME }}/main
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          ORIGINAL_REPO_NAME: ${{ github.event.repository.name }}
+          ORG_NAME: isfopo
