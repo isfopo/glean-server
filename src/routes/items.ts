@@ -1,10 +1,6 @@
 import { Router, Response } from "express";
 import multer from "multer";
-import {
-  AuthenticatedRequest,
-  authenticateToken,
-  optionalAuth,
-} from "../middleware/auth";
+import { AuthenticatedRequest } from "../middleware/auth";
 import { GeoMarker } from "../types";
 import { uploadStream, getPublicUrl } from "../lib/s3";
 import { Readable } from "stream";
@@ -29,70 +25,65 @@ const upload = multer({
 });
 
 // Create a new item
-router.post(
-  "/",
-  authenticateToken,
-  upload.single("photo"),
-  async (req: any, res: any) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ error: "Photo is required" });
-      }
-
-      const { geomarker, title, description } = req.body;
-
-      if (!geomarker) {
-        return res.status(400).json({ error: "Geomarker is required" });
-      }
-
-      // Parse geomarker if it's a string
-      let parsedGeomarker: GeoMarker;
-      try {
-        parsedGeomarker =
-          typeof geomarker === "string" ? JSON.parse(geomarker) : geomarker;
-      } catch (error) {
-        return res.status(400).json({ error: "Invalid geomarker format" });
-      }
-
-      // Validate geomarker
-      if (!parsedGeomarker.lat || !parsedGeomarker.lng) {
-        return res
-          .status(400)
-          .json({ error: "Geomarker must include lat and lng" });
-      }
-
-      const bucket = process.env.S3_BUCKET;
-      if (!bucket) {
-        throw new Error("S3_BUCKET environment variable not set");
-      }
-
-      const key = uuidv4();
-      const stream = Readable.from(req.file.buffer);
-      await uploadStream(bucket, key, stream, req.file.mimetype);
-      const photoUrl = getPublicUrl(bucket, key);
-
-      const item = req.repository.createItem({
-        photo: photoUrl, // Save URL instead of buffer
-        geomarker: parsedGeomarker,
-        title,
-        description,
-        userId: req.user.did,
-      });
-
-      res.status(201).json(item);
-    } catch (error) {
-      console.error("Create item error:", error);
-      res.status(500).json({ error: "Failed to create item" });
+router.post("/", upload.single("photo"), async (req: any, res: any) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
-  },
-);
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Photo is required" });
+    }
+
+    const { geomarker, title, description } = req.body;
+
+    if (!geomarker) {
+      return res.status(400).json({ error: "Geomarker is required" });
+    }
+
+    // Parse geomarker if it's a string
+    let parsedGeomarker: GeoMarker;
+    try {
+      parsedGeomarker =
+        typeof geomarker === "string" ? JSON.parse(geomarker) : geomarker;
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid geomarker format" });
+    }
+
+    // Validate geomarker
+    if (!parsedGeomarker.lat || !parsedGeomarker.lng) {
+      return res
+        .status(400)
+        .json({ error: "Geomarker must include lat and lng" });
+    }
+
+    const bucket = process.env.S3_BUCKET;
+    if (!bucket) {
+      throw new Error("S3_BUCKET environment variable not set");
+    }
+
+    const key = uuidv4();
+    const stream = Readable.from(req.file.buffer);
+    await uploadStream(bucket, key, stream, req.file.mimetype);
+    const photoUrl = getPublicUrl(bucket, key);
+
+    const item = req.repository.createItem({
+      photo: photoUrl, // Save URL instead of buffer
+      geomarker: parsedGeomarker,
+      title,
+      description,
+      userId: req.user.did,
+    });
+
+    res.status(201).json(item);
+  } catch (error) {
+    console.error("Create item error:", error);
+    res.status(500).json({ error: "Failed to create item" });
+  }
+});
 
 // Get all items
-router.get("/", optionalAuth, (req: any, res: any) => {
+router.get("/", (req: any, res: any) => {
   try {
     const items = req.repository.getAllItems();
     res.json(items);
@@ -103,7 +94,7 @@ router.get("/", optionalAuth, (req: any, res: any) => {
 });
 
 // Get items by location
-router.get("/location", optionalAuth, (req: any, res: any) => {
+router.get("/location", (req: any, res: any) => {
   try {
     const { lat, lng, radius } = req.query;
 
@@ -129,7 +120,7 @@ router.get("/location", optionalAuth, (req: any, res: any) => {
 });
 
 // Get a specific item
-router.get("/:id", optionalAuth, (req: any, res: any) => {
+router.get("/:id", (req: any, res: any) => {
   try {
     const { id } = req.params;
     const item = req.repository.getItem(id);
@@ -146,7 +137,7 @@ router.get("/:id", optionalAuth, (req: any, res: any) => {
 });
 
 // Delete an item
-router.delete("/:id", authenticateToken, (req: any, res: any) => {
+router.delete("/:id", (req: any, res: any) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });

@@ -1,42 +1,60 @@
-import { Request, Response, NextFunction } from 'express';
-import { Repository } from '../lib/repository';
+import { Request, Response, NextFunction } from "express";
+import { AppContext } from "..";
+import { Agent } from "@atproto/api";
 
-export interface AuthenticatedRequest extends Request {
+export type Session = { did: string };
+
+export interface BaseRequest extends Request {
+  context: AppContext;
+  agent: Agent;
+}
+
+export interface AuthenticatedRequest extends BaseRequest {
   user?: {
     did: string;
   };
-  repository: Repository;
 }
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+// export const authenticateToken = async (
+//   req: AuthenticatedRequest,
+//   res: Response,
+//   next: NextFunction,
+// ): Promise<void> => {
+//   const authHeader = req.headers["authorization"];
+//   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
-  if (!token) {
-    res.status(401).json({ error: 'Access token required' });
-    return;
-  }
+//   if (!token) {
+//     res.status(401).json({ error: "Access token required" });
+//     return;
+//   }
 
-  const did = req.repository.validateSession(token);
-  if (!did) {
-    res.status(403).json({ error: 'Invalid or expired token' });
-    return;
-  }
+//   req.context.oauthClient;
 
-  req.user = { did };
-  next();
-};
+//   if (!did) {
+//     res.status(403).json({ error: "Invalid or expired token" });
+//     return;
+//   }
 
-export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+//   req.user = { did };
+//   next();
+// };
 
-  if (token) {
-    const did = req.repository.validateSession(token);
-    if (did) {
-      req.user = { did };
-    }
-  }
+// export const optionalAuth = async (
+//   req: AuthenticatedRequest,
+//   res: Response,
+//   next: NextFunction,
+// ): Promise<void> => {
+//   const authHeader = req.headers["authorization"];
+//   const token = authHeader && authHeader.split(" ")[1];
 
-  next();
-};
+//   if (token) {
+//     const sessionService = new SessionService(req.context.db);
+
+//     const did = await sessionService.validateSession(token);
+//     if (did) {
+//       req.user = { did };
+//     }
+//   }
+
+//   next();
+// };

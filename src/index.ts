@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import pino from "pino";
 import events from "node:events";
 import type http from "node:http";
-import { Repository } from "./lib/repository";
 import { createDb, Database, migrateToLatest } from "./db";
 import { Firehose } from "@atproto/sync";
 import {
@@ -19,6 +18,12 @@ import { createIngester } from "./ingester";
 import { createRouter } from "./routes";
 import * as OpenApiValidator from "express-openapi-validator";
 import path from "path";
+import { Agent } from "@atproto/api";
+import { IncomingMessage, ServerResponse } from "node:http";
+import { getIronSession } from "iron-session";
+import { BaseRequest } from "./middleware/auth";
+
+export type Session = { did: string };
 
 // Application state passed to the router and elsewhere
 export type AppContext = {
@@ -27,17 +32,36 @@ export type AppContext = {
   logger: pino.Logger;
   oauthClient: OAuthClient;
   resolver: BidirectionalResolver;
-  repository: Repository;
 };
 
 // Load environment variables
 dotenv.config();
 
+// Helper function to get the Atproto Agent for the active session
+async function createAgent(
+  req: BaseRequest,
+  res: ServerResponse<IncomingMessage>,
+) {
+  const session = await getIronSession<Session>(req, res, {
+    cookieName: "sid",
+    password: process.env.COOKIE_SECRET,
+  });
+  if (!session.did) return null;
+  try {
+    const oauthSession = await req.context.oauthClient.restore(session.did);
+    return oauthSession ? new Agent(oauthSession) : null;
+  } catch (err) {
+    req.context.logger.warn({ err }, "oauth restore failed");
+    await session.destroy();
+    return null;
+  }
+}
+
 export class Server {
   constructor(
     public app: express.Application,
     public server: http.Server,
-    public ctx: AppContext,
+    public context: AppContext,
   ) {}
 
   static async create() {
@@ -53,22 +77,10 @@ export class Server {
     const db = createDb(DB_PATH);
     await migrateToLatest(db);
 
-    // Initialize repository
-    const repository = new Repository();
-
-    // Create the atproto utilities
     const oauthClient = await createClient(db, PORT);
     const baseIdResolver = createIdResolver();
     const ingester = createIngester(db, baseIdResolver);
     const resolver = createBidirectionalResolver(baseIdResolver);
-    const ctx: AppContext = {
-      db,
-      ingester,
-      logger,
-      oauthClient,
-      resolver,
-      repository,
-    };
 
     // Subscribe to events on the firehose
     ingester.start();
@@ -87,11 +99,25 @@ export class Server {
       }),
     );
 
-    // Make repository available in request context
-    app.use((req, res, next) => {
-      (req as any).repository = repository;
-      next();
-    });
+    const context: AppContext = {
+      db,
+      ingester,
+      logger,
+      oauthClient,
+      resolver,
+    };
+
+    // Make context available in request
+    app.use(
+      async (req: BaseRequest, res: ServerResponse<IncomingMessage>, next) => {
+        // Create the atproto utilities
+        const agent = await createAgent(req, res);
+
+        (req as any).context = context;
+        (req as any).agent = agent;
+        next();
+      },
+    );
 
     const spec = path.join(__dirname, "openapi.yaml");
     app.use("/spec", express.static(spec));
@@ -105,7 +131,7 @@ export class Server {
     );
 
     // Routes
-    const router = createRouter(ctx);
+    const router = createRouter(context);
     app.use(router);
 
     // Error handling middleware
@@ -131,15 +157,15 @@ export class Server {
     await events.once(server, "listening");
     logger.info(`Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`);
 
-    return new Server(app, server, ctx);
+    return new Server(app, server, context);
   }
 
   async close() {
-    this.ctx.logger.info("sigint received, shutting down");
-    await this.ctx.ingester.destroy();
+    this.context.logger.info("sigint received, shutting down");
+    await this.context.ingester.destroy();
     return new Promise<void>((resolve) => {
       this.server.close(() => {
-        this.ctx.logger.info("server closed");
+        this.context.logger.info("server closed");
         resolve();
       });
     });

@@ -4,36 +4,66 @@ info:
   version: 1.0.0
   description: API for the Glean server, an Express-based server for a social media application.
 servers:
-  - url: /api
+  - url: /
 paths:
-  /auth/createAccount:
-    post:
-      summary: Create a new user account
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                handle:
-                  type: string
-                password:
-                  type: string
-                email:
-                  type: string
-                profile:
-                  type: object
+  /health:
+    get:
+      summary: Health check endpoint
       responses:
-        "201":
-          description: Account created successfully
-        "400":
-          description: Bad request
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+  /client-metadata.json:
+    get:
+      summary: OAuth client metadata
+      responses:
+        "200":
+          description: OAuth client metadata retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+  /oauth/callback:
+    get:
+      summary: OAuth callback to complete authentication
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: state
+          schema:
+            type: string
+          required: true
+      responses:
+        "302":
+          description: Redirect after successful authentication
         "500":
-          description: Internal server error
-  /auth/createSession:
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/auth/login:
     post:
-      summary: Log in to an existing account
+      summary: Initiate OAuth login flow
       requestBody:
         required: true
         content:
@@ -43,53 +73,101 @@ paths:
               properties:
                 identifier:
                   type: string
+                  description: User's handle or DID
                 password:
                   type: string
       responses:
-        "200":
-          description: Logged in successfully
+        "302":
+          description: Redirect to OAuth authorization URL
         "400":
           description: Bad request
-        "401":
-          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /auth/getSession:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/auth/oauth/callback:
     get:
-      summary: Get information about the current session
-      security:
-        - bearerAuth: []
+      summary: OAuth callback to complete authentication
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: state
+          schema:
+            type: string
+          required: true
       responses:
-        "200":
-          description: Session information retrieved successfully
-        "401":
-          description: Unauthorized
-        "404":
-          description: User not found
+        "302":
+          description: Redirect after successful authentication
         "500":
-          description: Internal server error
-  /auth/deleteSession:
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/auth/logout:
     post:
       summary: Log out of the current session
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
         "500":
           description: Internal server error
-  /items:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/items:
     get:
       summary: Get all items
       responses:
         "200":
           description: A list of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
         "500":
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
     post:
       summary: Create a new item
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -100,8 +178,10 @@ paths:
                 photo:
                   type: string
                   format: binary
+                  description: Image file (JPEG, PNG, or WebP, max 10MB)
                 geomarker:
                   type: string
+                  description: JSON string with lat/lng coordinates
                 title:
                   type: string
                 description:
@@ -109,13 +189,38 @@ paths:
       responses:
         "201":
           description: Item created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
         "400":
           description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /items/location:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/items/location:
     get:
       summary: Get items by location
       parameters:
@@ -123,24 +228,51 @@ paths:
           name: lat
           schema:
             type: number
+            format: float
           required: true
+          description: Latitude
         - in: query
           name: lng
           schema:
             type: number
+            format: float
           required: true
+          description: Longitude
         - in: query
           name: radius
           schema:
             type: number
+            format: float
+            default: 10
+          description: Search radius in kilometers
       responses:
         "200":
           description: A list of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
         "400":
           description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /items/{id}:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/items/{id}:
     get:
       summary: Get a specific item by ID
       parameters:
@@ -149,41 +281,100 @@ paths:
           schema:
             type: string
           required: true
+          description: Item ID
       responses:
         "200":
           description: The requested item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
         "404":
           description: Item not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
     delete:
       summary: Delete a specific item by ID
-      security:
-        - bearerAuth: []
       parameters:
         - in: path
           name: id
           schema:
             type: string
           required: true
+          description: Item ID
       responses:
         "200":
           description: Item deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "404":
           description: Item not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /users:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/users:
     get:
       summary: Get all users
       responses:
         "200":
           description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         "500":
           description: Internal server error
-  /users/{identifier}:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/users/{identifier}:
     get:
       summary: Get a user profile by handle or DID
       parameters:
@@ -192,18 +383,35 @@ paths:
           schema:
             type: string
           required: true
+          description: User handle or DID
       responses:
         "200":
           description: The requested user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /users/profile:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/users/profile:
     put:
       summary: Update the current user's profile
-      security:
-        - bearerAuth: []
       requestBody:
         content:
           multipart/form-data:
@@ -213,9 +421,11 @@ paths:
                 avatar:
                   type: string
                   format: binary
+                  description: Avatar image file (JPEG, PNG, or WebP, max 1MB)
                 banner:
                   type: string
                   format: binary
+                  description: Banner image file (JPEG, PNG, or WebP, max 1MB)
                 displayName:
                   type: string
                 description:
@@ -223,27 +433,78 @@ paths:
       responses:
         "200":
           description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /users/account:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/users/account:
     delete:
       summary: Delete the current user's account
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
-  /lexicons/{id}:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/lexicons/{id}:
     get:
       summary: Get a lexicon by ID
       parameters:
@@ -252,16 +513,85 @@ paths:
           schema:
             type: string
           required: true
+          description: Lexicon ID
       responses:
         "200":
           description: The requested lexicon
+          content:
+            application/json:
+              schema:
+                type: object
         "404":
           description: Lexicon not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "500":
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+  schemas:
+    GeoMarker:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+      required:
+        - lat
+        - lng
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        photo:
+          type: string
+          format: uri
+        geomarker:
+          $ref: '#/components/schemas/GeoMarker'
+        title:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    User:
+      type: object
+      properties:
+        did:
+          type: string
+        handle:
+          type: string
+        profile:
+          type: object
+          properties:
+            displayName:
+              type: string
+            avatar:
+              type: string
+              format: uri
+            banner:
+              type: string
+              format: uri
+            description:
+              type: string
+            points:
+              type: number
+        createdAt:
+          type: string
+          format: date-time

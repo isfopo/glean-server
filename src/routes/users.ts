@@ -1,10 +1,5 @@
 import { Router, Response } from "express";
 import multer from "multer";
-import {
-  AuthenticatedRequest,
-  authenticateToken,
-  optionalAuth,
-} from "../middleware/auth";
 import { uploadStream, getPublicUrl } from "../lib/s3";
 import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
@@ -28,7 +23,7 @@ const upload = multer({
 });
 
 // Get all users (public endpoint)
-router.get("/", optionalAuth, (req: any, res: any) => {
+router.get("/", (req: any, res: any) => {
   try {
     const users = req.repository.getAllUsers();
     // Remove sensitive information
@@ -47,7 +42,7 @@ router.get("/", optionalAuth, (req: any, res: any) => {
 });
 
 // Get user profile by handle or DID
-router.get("/:identifier", optionalAuth, (req: any, res: any) => {
+router.get("/:identifier", (req: any, res: any) => {
   try {
     const { identifier } = req.params;
 
@@ -78,7 +73,6 @@ router.get("/:identifier", optionalAuth, (req: any, res: any) => {
 // Update user profile
 router.put(
   "/profile",
-  authenticateToken,
   upload.fields([
     { name: "avatar", maxCount: 1 },
     { name: "banner", maxCount: 1 },
@@ -144,7 +138,7 @@ router.put(
 );
 
 // Delete user account
-router.delete("/account", authenticateToken, (req: any, res: any) => {
+router.delete("/account", (req: any, res: any) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });

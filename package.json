@@ -8,7 +8,7 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "start": "node dist/index.js",
     "test": "node test-server.js",
-    "generate:types": "openapi-typescript src/openapi.yaml -o src/types/generated-types.ts"
+    "kill": "lsof -t -i :3000 | xargs kill -9"
   },
   "keywords": [],
   "author": "Isaac Pooole",
@@ -46,8 +46,8 @@
     "@types/node": "^24.5.2",
     "@types/uuid": "^10.0.0",
     "nodemon": "^3.1.10",
-    "openapi-typescript": "^7.9.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
-  }
+  },
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
