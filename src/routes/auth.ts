@@ -68,6 +68,11 @@ router.post("/login", async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ error: "Identifier is required" });
     }
 
+    const publicUrl = process.env.PUBLIC_URL;
+    const port = process.env.PORT || "3000";
+    const baseUrl = publicUrl || `http://127.0.0.1:${port}`;
+    const redirectUri = `${baseUrl}/api/auth/oauth/callback`;
+
     const url = await req.context.oauthClient.authorize(identifier, {
       scope: "atproto transition:generic",
     });

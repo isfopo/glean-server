@@ -41,6 +41,19 @@ export const createRouter = (ctx: AppContext) => {
     }),
   );
 
+  // Server metadata endpoints as per atproto OAuth spec
+  // Since we're using Bluesky as the authorization server, point to it
+  router.get(
+    "/.well-known/oauth-protected-resource",
+    handler((_req, res) => {
+      return res.json({
+        authorization_servers: ["https://bsky.social"],
+      });
+    }),
+  );
+
+  // No need for oauth-authorization-server since we're using external
+
   // Routes
   router.use("/api/items", itemRoutes);
   router.use("/api/users", userRoutes);

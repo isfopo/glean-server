@@ -21,7 +21,7 @@ import path from "path";
 import { Agent } from "@atproto/api";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { getIronSession } from "iron-session";
-import { BaseRequest } from "./middleware/auth";
+import { BaseRequest, setUserFromSession } from "./middleware/auth";
 
 export type Session = { did: string };
 
@@ -118,6 +118,11 @@ export class Server {
         next();
       },
     );
+
+    // Set user from session
+    app.use(async (req, res, next) => {
+      await setUserFromSession(req as any, res, next);
+    });
 
     const spec = path.join(__dirname, "openapi.yaml");
     app.use("/spec", express.static(spec));

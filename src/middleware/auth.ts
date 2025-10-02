@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppContext } from "..";
 import { Agent } from "@atproto/api";
+import { getIronSession } from "iron-session";
 
 export type Session = { did: string };
 
@@ -14,6 +15,24 @@ export interface AuthenticatedRequest extends BaseRequest {
     did: string;
   };
 }
+
+// Middleware to set user from session
+export const setUserFromSession = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  const session = await getIronSession<Session>(req, res, {
+    cookieName: "sid",
+    password: process.env.COOKIE_SECRET!,
+  });
+
+  if (session.did) {
+    req.user = { did: session.did };
+  }
+
+  next();
+};
 
 // export const authenticateToken = async (
 //   req: AuthenticatedRequest,

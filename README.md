@@ -46,9 +46,14 @@ src/
    ```
 
 3. **Set up environment variables:**
-   ```bash
-   cp .env.example .env
-   ```
+    ```bash
+    cp .env.example .env
+    ```
+
+   For production deployment, ensure the following environment variables are set:
+   - `PUBLIC_URL`: Set to your production HTTPS URL (e.g., `https://yourdomain.com`)
+   - `NODE_ENV`: Set to `production`
+   - `COOKIE_SECRET`: A secure random secret for session management
 
 4. **Build the project:**
    ```bash
@@ -294,6 +299,28 @@ const response = await fetch(
 const nearbyItems = await response.json();
 console.log('Found', nearbyItems.length, 'items nearby');
 ```
+
+## OAuth Setup
+
+This server implements the AT Protocol OAuth profile for authentication. **For development, it uses Bluesky (https://bsky.social) as the authorization server** to allow testing with real AT Protocol accounts. For production, you can configure it to use your own authorization server or continue using Bluesky.
+
+### Development (Using Bluesky)
+- The client is configured to use Bluesky's OAuth endpoints
+- Use your Bluesky handle or DID for authentication
+- The flow redirects to Bluesky's authorization page for login and approval
+- Supports scopes: `atproto`, `transition:generic`, `transition:chat.bsky`, `transition:email`
+
+### Production
+1. **Set PUBLIC_URL**: Must be a valid HTTPS URL pointing to your deployed server
+2. **HTTPS Required**: The server must be served over HTTPS in production
+3. **Client Metadata**: The server serves client metadata at `/client-metadata.json`
+4. **Server Metadata**: OAuth server metadata is available at `/.well-known/oauth-protected-resource` (points to Bluesky or your auth server)
+
+The OAuth flow supports:
+- Authorization Code grant with PKCE
+- DPoP for token binding
+- Public clients (no client secret)
+- Scopes: `atproto`, `transition:generic`, `transition:chat.bsky`, `transition:email`
 
 ## Development Notes
 
