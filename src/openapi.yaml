@@ -35,32 +35,6 @@ paths:
             application/json:
               schema:
                 type: object
-  /oauth/callback:
-    get:
-      summary: OAuth callback to complete authentication
-      parameters:
-        - in: query
-          name: code
-          schema:
-            type: string
-          required: true
-        - in: query
-          name: state
-          schema:
-            type: string
-          required: true
-      responses:
-        "302":
-          description: Redirect after successful authentication
-        "500":
-          description: Authentication failed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
   /api/auth/login:
     post:
       summary: Initiate OAuth login flow
@@ -111,6 +85,11 @@ paths:
           schema:
             type: string
           required: true
+        - in: query
+          name: iss
+          schema:
+            type: string
+          required: false
       responses:
         "302":
           description: Redirect after successful authentication
@@ -156,7 +135,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Item'
+                  $ref: "#/components/schemas/Item"
         "500":
           description: Internal server error
           content:
@@ -192,7 +171,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Item'
+                $ref: "#/components/schemas/Item"
         "400":
           description: Bad request
           content:
@@ -253,7 +232,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Item'
+                  $ref: "#/components/schemas/Item"
         "400":
           description: Bad request
           content:
@@ -288,7 +267,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Item'
+                $ref: "#/components/schemas/Item"
         "404":
           description: Item not found
           content:
@@ -364,7 +343,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: "#/components/schemas/User"
         "500":
           description: Internal server error
           content:
@@ -390,7 +369,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
         "404":
           description: User not found
           content:
@@ -436,7 +415,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User"
         "401":
           description: Unauthorized
           content:
@@ -562,7 +541,7 @@ components:
           type: string
           format: uri
         geomarker:
-          $ref: '#/components/schemas/GeoMarker'
+          $ref: "#/components/schemas/GeoMarker"
         title:
           type: string
         description:
