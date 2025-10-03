@@ -22,7 +22,7 @@ export function createIngester(db: Database, idResolver: IdResolver) {
         ) {
           // Store the item in our SQLite
           await db
-            .insertInto("item")
+            .insertInto("items")
             .values({
               uri: evt.uri.toString(),
               authorDid: evt.did,
@@ -51,7 +51,7 @@ export function createIngester(db: Database, idResolver: IdResolver) {
       ) {
         // Remove the status from our SQLite
         await db
-          .deleteFrom("item")
+          .deleteFrom("items")
           .where("uri", "=", evt.uri.toString())
           .execute();
       }

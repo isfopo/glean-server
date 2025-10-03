@@ -51,14 +51,14 @@ router.post("/login", async (req: AuthenticatedRequest, res: Response) => {
     const { did } = profile.data;
 
     let user: User | undefined = await db
-      .selectFrom("user")
+      .selectFrom("users")
       .where("did", "=", did)
       .selectAll()
       .executeTakeFirst();
 
     if (!user) {
       user = await db
-        .insertInto("user")
+        .insertInto("users")
         .values({
           did,
           handle,

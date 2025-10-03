@@ -11,8 +11,8 @@ import { Item, User } from "./types";
 // Types
 
 export type DatabaseSchema = {
-  user: User;
-  item: Item;
+  users: User;
+  items: Item;
 };
 
 // Migrations
@@ -28,7 +28,7 @@ const migrationProvider: MigrationProvider = {
 migrations["001"] = {
   async up(db: Kysely<unknown>) {
     await db.schema
-      .createTable("user")
+      .createTable("users")
       .addColumn("did", "varchar", (col) => col.primaryKey())
       .addColumn("handle", "varchar", (col) => col.notNull())
       .addColumn("points", "bigint", (col) => col.notNull())
@@ -36,7 +36,7 @@ migrations["001"] = {
       .addColumn("updatedAt", "varchar", (col) => col.notNull())
       .execute();
     await db.schema
-      .createTable("item")
+      .createTable("items")
       .addColumn("uri", "varchar", (col) => col.primaryKey())
       .addColumn("authorDid", "varchar", (col) => col.notNull())
       .addColumn("title", "varchar", (col) => col.notNull())
@@ -49,8 +49,8 @@ migrations["001"] = {
       .execute();
   },
   async down(db: Kysely<unknown>) {
-    await db.schema.dropTable("user").execute();
-    await db.schema.dropTable("item").execute();
+    await db.schema.dropTable("users").execute();
+    await db.schema.dropTable("items").execute();
   },
 };
 
