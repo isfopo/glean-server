@@ -1,7 +1,6 @@
 import { Router, Response } from "express";
 import multer from "multer";
 import { AuthenticatedRequest } from "../middleware/auth";
-import { GeoMarker } from "../types";
 import { uploadStream, getPublicUrl } from "../lib/s3";
 import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
@@ -42,7 +41,7 @@ router.post("/", upload.single("photo"), async (req: any, res: any) => {
     }
 
     // Parse geomarker if it's a string
-    let parsedGeomarker: GeoMarker;
+    let parsedGeomarker;
     try {
       parsedGeomarker =
         typeof geomarker === "string" ? JSON.parse(geomarker) : geomarker;
@@ -104,14 +103,15 @@ router.get("/location", (req: any, res: any) => {
         .json({ error: "Latitude and longitude are required" });
     }
 
-    const center: GeoMarker = {
-      lat: parseFloat(lat as string),
-      lng: parseFloat(lng as string),
-    };
-
     const radiusKm = radius ? parseFloat(radius as string) : 10;
 
-    const items = req.repository.getItemsByLocation(center, radiusKm);
+    const items = req.repository.getItemsByLocation(
+      {
+        lat: parseFloat(lat as string),
+        lng: parseFloat(lng as string),
+      },
+      radiusKm,
+    );
     res.json(items);
   } catch (error) {
     console.error("Get items by location error:", error);

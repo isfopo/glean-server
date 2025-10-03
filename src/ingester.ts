@@ -31,7 +31,7 @@ export function createIngester(db: Database, idResolver: IdResolver) {
               photo: record.photo,
               ["geomarker.lng"]: record.geomarker.lng,
               ["geomarker.lat"]: record.geomarker.lat,
-              indexedAt: now.toISOString(),
+              createdAt: now.toISOString(),
             })
             .onConflict((oc) =>
               oc.column("uri").doUpdateSet({
@@ -40,7 +40,7 @@ export function createIngester(db: Database, idResolver: IdResolver) {
                 photo: record.photo,
                 ["geomarker.lng"]: record.geomarker.lng,
                 ["geomarker.lat"]: record.geomarker.lat,
-                indexedAt: now.toISOString(),
+                createdAt: now.toISOString(),
               }),
             )
             .execute();

@@ -13,7 +13,6 @@ import {
   createIdResolver,
 } from "./id-resolver";
 import { OAuthClient } from "@atproto/oauth-client-node";
-import { createClient } from "./auth/client";
 import { createIngester } from "./ingester";
 import { createRouter } from "./routes";
 import * as OpenApiValidator from "express-openapi-validator";
@@ -21,7 +20,7 @@ import path from "path";
 import { Agent } from "@atproto/api";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { getIronSession } from "iron-session";
-import { BaseRequest, setUserFromSession } from "./middleware/auth";
+import { BaseRequest } from "./middleware/auth";
 
 export type Session = { did: string };
 
@@ -30,32 +29,11 @@ export type AppContext = {
   db: Database;
   ingester: Firehose;
   logger: pino.Logger;
-  oauthClient: OAuthClient;
   resolver: BidirectionalResolver;
 };
 
 // Load environment variables
 dotenv.config();
-
-// Helper function to get the Atproto Agent for the active session
-async function createAgent(
-  req: BaseRequest,
-  res: ServerResponse<IncomingMessage>,
-) {
-  const session = await getIronSession<Session>(req, res, {
-    cookieName: "sid",
-    password: process.env.COOKIE_SECRET,
-  });
-  if (!session.did) return null;
-  try {
-    const oauthSession = await req.context.oauthClient.restore(session.did);
-    return oauthSession ? new Agent(oauthSession) : null;
-  } catch (err) {
-    req.context.logger.warn({ err }, "oauth restore failed");
-    await session.destroy();
-    return null;
-  }
-}
 
 export class Server {
   constructor(
@@ -77,7 +55,6 @@ export class Server {
     const db = createDb(DB_PATH);
     await migrateToLatest(db);
 
-    const oauthClient = await createClient(db, PORT);
     const baseIdResolver = createIdResolver();
     const ingester = createIngester(db, baseIdResolver);
     const resolver = createBidirectionalResolver(baseIdResolver);
@@ -103,27 +80,18 @@ export class Server {
       db,
       ingester,
       logger,
-      oauthClient,
       resolver,
     };
 
     // Make context available in request
     app.use(
       async (req: BaseRequest, res: ServerResponse<IncomingMessage>, next) => {
-        // Create the atproto utilities
-        const agent = await createAgent(req, res);
-
+        // Set context first
         (req as any).context = context;
-        (req as any).agent = agent;
+
         next();
       },
     );
-
-    // Set user from session
-    app.use(async (req, res, next) => {
-      await setUserFromSession(req as any, res, next);
-    });
-
     const spec = path.join(__dirname, "openapi.yaml");
     app.use("/spec", express.static(spec));
 

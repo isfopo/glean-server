@@ -6,40 +6,14 @@ import {
   Migration,
   MigrationProvider,
 } from "kysely";
+import { Item, User } from "./types";
 
 // Types
 
 export type DatabaseSchema = {
+  user: User;
   item: Item;
-  auth_session: AuthSession;
-  auth_state: AuthState;
 };
-
-export type Item = {
-  uri: string;
-  authorDid: string;
-  title: string;
-  description: string;
-  photo: string;
-  "geomarker.lng": string;
-  "geomarker.lat": string;
-  createdAt: string;
-  indexedAt: string;
-};
-
-export type AuthSession = {
-  key: string;
-  session: AuthSessionJson;
-};
-
-export type AuthState = {
-  key: string;
-  state: AuthStateJson;
-};
-
-type AuthStateJson = string;
-
-type AuthSessionJson = string;
 
 // Migrations
 
@@ -54,6 +28,14 @@ const migrationProvider: MigrationProvider = {
 migrations["001"] = {
   async up(db: Kysely<unknown>) {
     await db.schema
+      .createTable("user")
+      .addColumn("did", "varchar", (col) => col.primaryKey())
+      .addColumn("handle", "varchar", (col) => col.notNull())
+      .addColumn("points", "bigint", (col) => col.notNull())
+      .addColumn("createdAt", "varchar", (col) => col.notNull())
+      .addColumn("updatedAt", "varchar", (col) => col.notNull())
+      .execute();
+    await db.schema
       .createTable("item")
       .addColumn("uri", "varchar", (col) => col.primaryKey())
       .addColumn("authorDid", "varchar", (col) => col.notNull())
@@ -63,22 +45,11 @@ migrations["001"] = {
       .addColumn("geomarker.lng", "varchar", (col) => col.notNull())
       .addColumn("geomarker.lat", "varchar", (col) => col.notNull())
       .addColumn("createdAt", "varchar", (col) => col.notNull())
-      .addColumn("indexedAt", "varchar", (col) => col.notNull())
-      .execute();
-    await db.schema
-      .createTable("auth_session")
-      .addColumn("key", "varchar", (col) => col.primaryKey())
-      .addColumn("session", "varchar", (col) => col.notNull())
-      .execute();
-    await db.schema
-      .createTable("auth_state")
-      .addColumn("key", "varchar", (col) => col.primaryKey())
-      .addColumn("state", "varchar", (col) => col.notNull())
+      .addColumn("updatedAt", "varchar", (col) => col.notNull())
       .execute();
   },
   async down(db: Kysely<unknown>) {
-    await db.schema.dropTable("auth_state").execute();
-    await db.schema.dropTable("auth_session").execute();
+    await db.schema.dropTable("user").execute();
     await db.schema.dropTable("item").execute();
   },
 };

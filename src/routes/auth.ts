@@ -5,105 +5,116 @@ import { AppContext } from "..";
 import { getIronSession } from "iron-session";
 import { handler } from ".";
 import assert from "node:assert";
+import { BskyAgent } from "@atproto/api";
+import { User } from "#/types";
 export type Session = { did: string };
 
 const router = Router({});
 
-router.get("/client-metadata.json", (req: BaseRequest, res: Response) => {
-  return res.json(req.context.oauthClient.clientMetadata);
-});
+const getAgent = (): BskyAgent => {
+  return new BskyAgent({
+    service: "https://bsky.social/",
+  });
+};
 
-// // Create account
-// router.post(
-//   "/createAccount",
-//   async (req: AuthenticatedRequest, res: Response) => {
-//     try {
-//       const { handle, password, email, profile } = req.body;
+const decodeBasicAuthHeader = (
+  auth: string,
+): { handle: string; password: string } => {
+  const [scheme, token] = auth.split(" ");
+  assert(scheme === "Basic", "Invalid authorization scheme");
+  const decoded = Buffer.from(token, "base64").toString("utf8");
+  const [handle, password] = decoded.split(":");
+  return { handle, password };
+};
 
-//       if (!handle || !password) {
-//         return res
-//           .status(400)
-//           .json({ error: "Handle and password are required" });
-//       }
-
-//       const userService = new UserService();
-
-//       const {
-//         accessJwt,
-//         refreshJwt,
-//         did,
-//         handle: userHandle,
-//         profile: userProfile,
-//       } = await userService.createUserAccount({
-//         handle,
-//         password,
-//         email,
-//         profile,
-//       });
-
-//       res.status(201).json({
-//         accessJwt,
-//         refreshJwt,
-//         handle: userHandle,
-//         did: did,
-//         profile: userProfile,
-//       });
-//     } catch (error: any) {
-//       console.error("Create account error:", error);
-//       if (error.message === "Handle already exists") {
-//         return res.status(400).json({ error: error.message });
-//       }
-//       res.status(500).json({ error: "Failed to create account" });
-//     }
-//   },
-// );
+// router.get("/client-metadata.json", (req: BaseRequest, res: Response) => {
+//   return res.json(req.context.oauthClient.clientMetadata);
+// });
 
 // Login
 router.post("/login", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { identifier } = req.body;
-    console.log("identifier:", identifier);
+    // Get handle and password from headers
+    const { handle, password } = decodeBasicAuthHeader(
+      req.headers["authorization"],
+    );
 
-    if (!identifier) {
-      return res.status(400).json({ error: "Identifier is required" });
-    }
-
-    const publicUrl = process.env.PUBLIC_URL;
-    const port = process.env.PORT || "3000";
-    const baseUrl = publicUrl || `http://127.0.0.1:${port}`;
-    const redirectUri = `${baseUrl}/api/auth/oauth/callback`;
-
-    const url = await req.context.oauthClient.authorize(identifier, {
-      scope: "atproto transition:generic",
+    const agent = getAgent();
+    const session = await agent.login({
+      identifier: handle,
+      password,
     });
 
-    console.log("Redirecting to:", url.toString());
-    return res.redirect(301, url.toString());
+    const { db } = req.context;
+    const profile = await agent.getProfile({ actor: session.data.did });
+
+    const { did } = profile.data;
+
+    let user: User | undefined = await db
+      .selectFrom("user")
+      .where("did", "=", did)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!user) {
+      user = await db
+        .insertInto("user")
+        .values({
+          did,
+          handle,
+          points: 0,
+          createdAt: new Date().toUTCString(),
+          updatedAt: new Date().toUTCString(),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    }
+
+    return res.json({ session: session.data });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Failed to login" });
   }
 });
 
-// OAuth callback to complete session creation
-router.get("/oauth/callback", async (req: BaseRequest, res: Response) => {
-  const params = new URLSearchParams(req.originalUrl.split("?")[1]);
-  const { oauthClient, logger } = req.context;
+// // OAuth callback to complete session creation
+// router.get("/oauth/callback", async (req: BaseRequest, res: Response) => {
+//   const params = new URLSearchParams(req.originalUrl.split("?")[1]);
+//   const { oauthClient } = req.context;
 
+//   try {
+//     const { session } = await oauthClient.callback(params);
+//     const clientSession = await getIronSession<Session>(req, res, {
+//       cookieName: "sid",
+//       password: process.env.COOKIE_SECRET,
+//     });
+
+//     clientSession.did = session.did;
+//     await clientSession.save();
+//     return res.json({ success: true, did: session.did });
+//   } catch (err) {
+//     console.log(err);
+//     return res.status(500).json({ error: "Authentication failed" });
+//   }
+// });
+
+// Get current session
+router.get("/session", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { session } = await oauthClient.callback(params);
-    const clientSession = await getIronSession<Session>(req, res, {
+    const session = await getIronSession<Session>(req, res, {
       cookieName: "sid",
       password: process.env.COOKIE_SECRET,
     });
-    assert(!clientSession.did, "session already exists");
-    clientSession.did = session.did;
-    await clientSession.save();
-  } catch (err) {
-    logger.error({ err }, "oauth callback failed");
-    return res.redirect("/?error");
+
+    if (!session.did) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    res.json({ did: session.did });
+  } catch (error) {
+    console.error("Session error:", error);
+    res.status(500).json({ error: "Failed to get session" });
   }
-  return res.redirect("/");
 });
 
 // Delete session (logout)

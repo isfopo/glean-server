@@ -33,14 +33,6 @@ export const createRouter = (ctx: AppContext) => {
     });
   });
 
-  // OAuth metadata
-  router.get(
-    "/client-metadata.json",
-    handler((_req, res) => {
-      return res.json(ctx.oauthClient.clientMetadata);
-    }),
-  );
-
   // Server metadata endpoints as per atproto OAuth spec
   // Since we're using Bluesky as the authorization server, point to it
   router.get(
@@ -55,9 +47,9 @@ export const createRouter = (ctx: AppContext) => {
   // No need for oauth-authorization-server since we're using external
 
   // Routes
-  router.use("/api/items", itemRoutes);
-  router.use("/api/users", userRoutes);
   router.use("/api/auth", authRoutes);
+  router.use("/api/users", userRoutes);
+  router.use("/api/items", itemRoutes);
 
   // Lexicon endpoint to serve our schemas
   router.get("/api/lexicons/:id", (req, res) => {

@@ -1,8 +1,10 @@
-import { Router, Response } from "express";
+import { Router, Response, NextFunction } from "express";
 import multer from "multer";
 import { uploadStream, getPublicUrl } from "../lib/s3";
 import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
+import { BskyAgent } from "@atproto/api";
+import { AuthenticatedRequest } from "#/middleware/auth";
 
 const router = Router();
 

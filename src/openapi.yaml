@@ -35,33 +35,41 @@ paths:
             application/json:
               schema:
                 type: object
-  /api/auth/login:
-    post:
-      summary: Initiate OAuth login flow
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                identifier:
-                  type: string
-                  description: User's handle or DID
-                password:
-                  type: string
+  /.well-known/oauth-protected-resource:
+    get:
+      summary: OAuth protected resource metadata
       responses:
-        "302":
-          description: Redirect to OAuth authorization URL
-        "400":
-          description: Bad request
+        "200":
+          description: OAuth protected resource metadata
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  error:
-                    type: string
+                  authorization_servers:
+                    type: array
+                    items:
+                      type: string
+  /api/auth/login:
+    post:
+      summary: Direct login with Bluesky credentials
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Authorization header with Bluesky credentials in the format "Basic base64(username:password)"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    type: object
         "500":
           description: Internal server error
           content:
@@ -91,10 +99,50 @@ paths:
             type: string
           required: false
       responses:
-        "302":
-          description: Redirect after successful authentication
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  did:
+                    type: string
         "500":
           description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/auth/session:
+    get:
+      summary: Get current session
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  did:
+                    type: string
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -456,6 +504,53 @@ paths:
                 properties:
                   success:
                     type: boolean
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /api/users/points:
+    put:
+      summary: Update the current user's points
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                points:
+                  type: number
+                  description: New points value
+      responses:
+        "200":
+          description: Points updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
         "401":
           description: Unauthorized
           content:
